@@ -147,6 +147,9 @@ s = s.decode('utf-8')
 with open('admint.txt','w',100,'utf-8') as file:
     file.write(s)
 
+#直接使用本地
+filename = urllib.request.urlretrieve(url,'test.txt')
+urllib.request.urlcleanup()
 
 parser = MyHTMLParser2()
 for line in open('admint.txt','r'):
