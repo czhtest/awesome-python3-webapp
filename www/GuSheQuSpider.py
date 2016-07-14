@@ -1,7 +1,7 @@
 import urllib.request
 from bs4 import BeautifulSoup
 
-#import GuSheQuExcel as ex
+
 
 
 #利用requests表来做
@@ -48,27 +48,40 @@ print('.....')
 
 import xlrd
 from xlutils.copy import copy
+
 file = 'yupen.xls'
-data = xlrd.open_workbook(file)
+#打开excel工作表保留原有样式
+data = xlrd.open_workbook(file,formatting_info=True)
+#获取第一个sheet
 table = data.sheet_by_index(0)
+#获取工作表的副本
 wb = copy(data)
+#获取副本的第一个sheet
 ws = wb.get_sheet(0)
+#h获取已经多少行
 nrow = table.nrows
+#计算器
 i = 0
+#查看某个日期是否已经存在
 def CheckDate(date):
     for row in range(table.nrows):
         if date in table.cell(row,0).value:
             print('日期已经存在...')
+            global nrow
             nrow = row
             return True
     #找不到已知行
+    global i
     nrow = table.nrows + i
-    i = i + 1
+    i += 1
+    #print('i=',i)
+    #print('check nrow:',nrow)
     return False
-
+#写入列值
 def WriteCol(col,value):
     ws.write(nrow,col,value)
 
+#解析返回的json格式的结果
 for article in json_obj['value']['lastestArticle']:
     print(article['url'])
     #打开链接并找到内容收集
@@ -76,7 +89,9 @@ for article in json_obj['value']['lastestArticle']:
     #找到日期
     date1 = soup.find('em',id='post-date',class_='rich_media_meta rich_media_meta_text')
     CheckDate(date1.get_text())
+    #print('write before',nrow)
     WriteCol(0,date1.get_text())
+
     #获取内容
     context = soup.find('div',class_='rich_media_content')
     for p in context.contents:
@@ -97,5 +112,5 @@ for article in json_obj['value']['lastestArticle']:
                         elif word == keywords[3]:
                             WriteCol(8,int(text[-4:]))
 
-
+#保存文件
 wb.save(file)
