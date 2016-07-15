@@ -161,13 +161,14 @@ class email():
         #退出
         server.quit()
 
-
+'''
 crawl = crawlLiuMaibo()
 crawl.crawLastest()
 #print(crawl.newText)
 #print(crawl.now_num)
 mail = email()
 mail.sendMail(crawl.newText,crawl.Imgs)
+'''
 def getCurTime():
     return time.localtime(time.time())
 
