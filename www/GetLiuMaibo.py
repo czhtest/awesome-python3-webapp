@@ -202,6 +202,7 @@ def ownCalcMail():
             print('无变化,进入15分钟睡眠')
             time.sleep(int(timesleep)*15)
         nw = getCurTime()
+    print('当日的任务已经不需要继续采集')
 
 while True:
     ownCalcMail()
