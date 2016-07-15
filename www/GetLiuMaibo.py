@@ -204,7 +204,7 @@ def ownCalcMail():
         nw = getCurTime()
     print('当日的任务已经不需要继续采集')
     return False
-
+#每天
 isLoop=True
 while isLoop:
     isLoop = ownCalcMail()
