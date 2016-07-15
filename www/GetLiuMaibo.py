@@ -88,7 +88,7 @@ class crawlLiuMaibo():
                             break
                         i = i + 1
                 self.newText = element.get_text(strip=True)
-
+                self.newText = self.newText.strip('[刘鹏程SaiL直播]')
             #查看原图
             img_child = soup.find('img',class_='ico_original')
             if img_child != None:
@@ -162,12 +162,12 @@ class email():
         server.quit()
 
 
-#crawl = crawlLiuMaibo()
-#crawl.crawLastest()
+crawl = crawlLiuMaibo()
+crawl.crawLastest()
 #print(crawl.newText)
 #print(crawl.now_num)
-#mail = email()
-#mail.sendMail(crawl.newText,crawl.Imgs)
+mail = email()
+mail.sendMail(crawl.newText,crawl.Imgs)
 def getCurTime():
     return time.localtime(time.time())
 
@@ -184,9 +184,9 @@ def ownCalcMail():
     crawl = crawlLiuMaibo()
     crawl.crawLastest()
     nw = getCurTime()
-    print(nw)
+    print(nw.tm_hour)
     #当小时数大于16退出
-    while nw.tm_hour <=16 :
+    while nw.tm_hour <16 :
         global org_num
         #当id不同时需要发送内容
         if crawl.now_num != org_num:
@@ -202,6 +202,9 @@ def ownCalcMail():
             print('无变化,进入15分钟睡眠')
             time.sleep(int(timesleep)*15)
         nw = getCurTime()
+    print('当日的任务已经不需要继续采集')
+    return False
 
-while True:
-    ownCalcMail()
+isLoop=True
+while isLoop:
+    isLoop = ownCalcMail()
