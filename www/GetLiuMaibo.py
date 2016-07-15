@@ -162,19 +162,19 @@ class email():
         server.quit()
 
 
-crawl = crawlLiuMaibo()
-crawl.crawLastest()
+#crawl = crawlLiuMaibo()
+#crawl.crawLastest()
 #print(crawl.newText)
 #print(crawl.now_num)
-mail = email()
-mail.sendMail(crawl.newText,crawl.Imgs)
+#mail = email()
+#mail.sendMail(crawl.newText,crawl.Imgs)
 def getCurTime():
     return time.localtime(time.time())
 
 #开启一个进程作业
 
 
-print(config.sections())
+#print(config.sections())
 org_num = config.get('info','last_num')
 timesleep= config.get('info','timeSleep')
 def save(org_num):
