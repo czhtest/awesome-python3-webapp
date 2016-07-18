@@ -42,7 +42,7 @@ class crawlLiuMaibo():
     #其实已经是部分文档了
     now_num=0
     newText=None
-    Imgs=[]
+    Imgs=set([])
     #写入本地图片文件夹中
     def writeImg(self,imgurl):
         if imgurl !=None:
@@ -50,13 +50,17 @@ class crawlLiuMaibo():
             #print(filename)
             suffix=imgurl[-4:]
             #   print(suffix)
-            if os.path.exists("WeiBoImg/"+filename+suffix):
+            img = "WeiBoImg/"+filename+suffix
+            self.Imgs.add(img)
+            if os.path.exists(img):
                 return
             else:
                 newimg=requests.get(imgurl)
-                with open("WeiBoImg/"+filename+suffix,'wb') as file:
+                with open(img,'wb') as file:
                     file.write(newimg.content)
-                self.imgs.append(filename+suffix)
+
+
+
     def crawLastest(self):
         #响应内容
         if self.response.status_code == requests.codes.ok:
@@ -93,11 +97,11 @@ class crawlLiuMaibo():
             img_child = soup.find('img',class_='ico_original')
             if img_child != None:
                 img = img_child.parent
-                writeImg(img['href'])
+                self.writeImg(img['href'])
             #点击查看原图
             imgs = soup.find_all('a',class_='check')
             for img in imgs:
-                writeImg(img['href'])
+                self.writeImg(img['href'])
 
 '''
 发送QQ邮箱通知
@@ -138,7 +142,7 @@ class email():
         msg.attach(MIMEText(_text=content,_charset='utf-8'))
         #图片
         for img in imgs:
-            file_msg=attach_img(img)
+            file_msg=self.attach_img(img)
             #发送图片文件参数
             file_msg.add_header('Content-Disposition','attachment',
                         filename=os.path.split(img)[-1])
@@ -165,7 +169,7 @@ class email():
 crawl = crawlLiuMaibo()
 crawl.crawLastest()
 #print(crawl.newText)
-#print(crawl.now_num)
+print(crawl.Imgs)
 mail = email()
 mail.sendMail(crawl.newText,crawl.Imgs)
 '''
