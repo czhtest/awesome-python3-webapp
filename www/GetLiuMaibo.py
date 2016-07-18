@@ -194,12 +194,14 @@ def ownCalcMail():
     while nw.tm_hour <16 :
         global org_num
         #当id不同时需要发送内容
+        crawl.crawLastest()
+        print('检查当前crawl.now_num ',crawl.now_num,'org_num',org_num)
         if crawl.now_num != org_num:
             mail = email()
             mail.sendMail(crawl.newText,crawl.Imgs)
             #global org_num
             org_num = crawl.now_num
-            print('发送新邮件...')
+            print('发送新邮件并休息30分钟...')
             save(org_num)
             time.sleep(int(timesleep)*30)
         else:
