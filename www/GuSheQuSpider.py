@@ -39,6 +39,13 @@ with open('text.html','w') as f:
     f.write(response.text)
 '''
 #过滤关键字
+#获取股票收盘价格
+import tushare as ts
+def GetStockClose(code,date):
+    df = ts.get_hist_data(code,date,date)
+    if df.size !=0:
+        return df['close'].values[0]
+
 key = '临界'
 keywords=['上证','创业板','中小板','国证有色']
 import json
@@ -79,8 +86,21 @@ def CheckDate(date):
     return False
 #写入列值
 def WriteCol(col,value):
-    ws.write(nrow,col,value)
+    if value is not None:
+        ws.write(nrow,col,value)
 
+def WriteSZZSClose(date):
+    close= GetStockClose('sh',date)
+    WriteCol(1,close)
+def WriteCYBZClose(date):
+    close= GetStockClose('cyb',date)
+    WriteCol(4,close)
+def WriteZXBZClose(date):
+    close= GetStockClose('zxb',date)
+    WriteCol(7,close)
+def WriteYSBKClose(date):
+    close= GetStockClose('399395',date)
+    WriteCol(10,close)
 #解析返回的json格式的结果
 for article in json_obj['value']['lastestArticle']:
     print(article['url'])
@@ -88,10 +108,15 @@ for article in json_obj['value']['lastestArticle']:
     soup = BeautifulSoup(urllib.request.urlopen(article['url']),'html5lib')
     #找到日期
     date1 = soup.find('em',id='post-date',class_='rich_media_meta rich_media_meta_text')
-    CheckDate(date1.get_text())
+    date = date1.get_text()
+    CheckDate(date)
     #print('write before',nrow)
-    WriteCol(0,date1.get_text())
-
+    WriteCol(0,date)
+    #获取对应日期的收盘价格写入
+    WriteSZZSClose(date)
+    WriteCYBZClose(date)
+    WriteZXBZClose(date)
+    WriteYSBKClose(date)
     #获取内容
     context = soup.find('div',class_='rich_media_content')
     for p in context.contents:
@@ -106,11 +131,11 @@ for article in json_obj['value']['lastestArticle']:
                             #这个临界后面的数字是需要写入的
                             WriteCol(2,int(text[-4:]))
                         elif word ==keywords[1]:
-                            WriteCol(4,int(text[-4:]))
+                            WriteCol(5,int(text[-4:]))
                         elif word == keywords[2]:
-                            WriteCol(6,int(text[-4:]))
-                        elif word == keywords[3]:
                             WriteCol(8,int(text[-4:]))
+                        elif word == keywords[3]:
+                            WriteCol(11,int(text[-4:]))
 
 #保存文件
 wb.save(file)
