@@ -154,7 +154,7 @@ class email():
         #发送方的smtp服务，查看发送邮箱服务是否已经开启了SMTP服务
         stmp_server='smtp.qq.com'
         #目标邮箱
-        to_addr=config.get('emailInfo','to_addr')
+        to_addr=config.get('emailInfo','to_addr').split(',')
         #开始服务端口
         server =smtplib.SMTP(stmp_server,25)
         #server.set_debuglevel(1)
@@ -212,6 +212,7 @@ def ownCalcMail():
     print('当日的任务已经不需要继续采集')
     return False
 #每天
-isLoop=True
-while isLoop:
-    isLoop = ownCalcMail()
+
+isInnerLoop=True
+while isInnerLoop:
+    isInnerLoop = ownCalcMail()
