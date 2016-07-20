@@ -49,4 +49,3 @@ for name in names:
     print('Name:',name,'\r\nTime:',times[i],'\r\nLoc:',locations[i])
     i = i + 1
 
-
