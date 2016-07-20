@@ -7,7 +7,7 @@ import os
 emailContext=None
 #获取时间戳
 def getNowTime():
-    return time.strftime('%Y%m%d%H%M%S',time.localtime(time.time()))
+    return time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time()))
 #print(getNowTime())
 from bs4 import BeautifulSoup
 import requests
@@ -25,13 +25,12 @@ class crawlLiuMaibo():
         'syncShareSpaceWeiboId':0
     }
 
-    response = requests.get(url,params=params)
+
     #返回编码方式
     #print(response.encoding)
     #打印内容
     #print(response.text)
-    #内置json解析器,帮助处理json数据,返回python数据
-    py_obj = response.json()
+
     #print(py_obj)
     #import json
     #print('..........')
@@ -62,10 +61,15 @@ class crawlLiuMaibo():
 
 
     def crawLastest(self):
+        #清空上一次的图记录
+        self.Imgs.clear()
+        response = requests.get(self.url,params=self.params)
+        #内置json解析器,帮助处理json数据,返回python数据
+        py_obj = response.json()
         #响应内容
-        if self.response.status_code == requests.codes.ok:
+        if response.status_code == requests.codes.ok:
             #响应成功将尝试采集内容
-            lists = self.py_obj['data']['weibo_lists']
+            lists = py_obj['data']['weibo_lists']
             soup = BeautifulSoup(lists,'html5lib')
             #print(soup.prettify())
             now_ids = soup.find_all('a',rel='commentFeed')
@@ -187,11 +191,11 @@ def save(org_num):
     config.write(open('GetLiuMaibo.cfg','w'))
 def ownCalcMail():
     crawl = crawlLiuMaibo()
-    crawl.crawLastest()
+    #crawl.crawLastest()
     nw = getCurTime()
     print(nw.tm_hour)
     #当小时数大于16退出
-    while nw.tm_hour <16 :
+    while nw.tm_hour <16 and nw.tm_hour > 8:
         global org_num
         #当id不同时需要发送内容
         crawl.crawLastest()
@@ -210,6 +214,7 @@ def ownCalcMail():
             time.sleep(int(timesleep)*15)
         nw = getCurTime()
     print('当日的任务已经不需要继续采集')
+    
     return False
 #每天
 
