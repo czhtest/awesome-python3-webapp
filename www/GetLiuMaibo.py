@@ -3,7 +3,17 @@
 当发现有自上一次采集的新内容时,将新的内容采集下来并打印出来
 '''
 import time
+import configparser
 import os
+
+config = configparser.ConfigParser()
+config.read('GetLiuMaibo.cfg')
+org_num = config.get('info','last_num')
+timesleep= config.get('info','timeSleep')
+def save(org_num):
+    if config.get('info','last_num') !=org_num:
+        config.set('info','last_num',org_num)
+        config.write(open('GetLiuMaibo.cfg','w'))
 emailContext=None
 #获取时间戳
 def getNowTime():
@@ -11,7 +21,7 @@ def getNowTime():
 #print(getNowTime())
 from bs4 import BeautifulSoup
 import requests
-import urllib
+from bs4 import SoupStrainer
 class crawlLiuMaibo():
     url='http://www.imaibo.net/space/1954702'
     params={
@@ -19,7 +29,7 @@ class crawlLiuMaibo():
         'mod':'Space',
         'act':'getSpaceWeibo300',
         'uid':1954702,
-        'limit':1,
+        'limit':20,
         'p':1,
         'lastId':0,
         'syncShareSpaceWeiboId':0
@@ -39,7 +49,8 @@ class crawlLiuMaibo():
     #print(json_obj)
     #print(py_obj == py_obj1)
     #其实已经是部分文档了
-    now_num=0
+    now_nums=set()
+    lastId=org_num
     newText=None
     Imgs=set([])
     #写入本地图片文件夹中
@@ -61,8 +72,14 @@ class crawlLiuMaibo():
 
 
     def crawLastest(self):
-        #清空上一次的图记录
+        #清空上一次的图nows记录
         self.Imgs.clear()
+        self.now_nums.clear()
+        #获取记录
+        self.lastId = config.get('info','last_num')
+        print("wenjian ",self.lastId)
+
+        #self.params['lastId']=org_num
         response = requests.get(self.url,params=self.params)
         #内置json解析器,帮助处理json数据,返回python数据
         py_obj = response.json()
@@ -73,48 +90,71 @@ class crawlLiuMaibo():
             soup = BeautifulSoup(lists,'html5lib')
             #print(soup.prettify())
             now_ids = soup.find_all('a',rel='commentFeed')
+            #收集需要采集的消息队列
             for now_id in now_ids:
-                if now_id['minid']!=2834108:
-                    self.now_num = now_id['minid']
-            key_list='list_li_'+str(self.now_num)
-            span_id = 'longText-'+str(self.now_num)
-            #获取内容
-            #如果limit>1时这里需要循环
-            content = soup.find('li',class_='lineD_btm char_info',id=key_list)
+                if now_id['minid']!=2834108 and now_id['minid'] >self.lastId :
+                    self.now_nums.add(now_id['minid'])
+            #print(self.now_nums)
+            for now_num in self.now_nums:
+                key_list='list_li_'+str(now_num)
+                span_id = 'longText-'+str(now_num)
+                #清空上一次的图记录
+                self.Imgs.clear()
 
-            #解析部分文档
-            if content !=None:
-                #获取长直播
-                element=soup.find('span',id=span_id)
-                if element == None:
-                    #获取短博文
-                    i = 0
-                    elements = soup.find_all('div',class_='a_line')
-                    for element in elements:
-                        if i !=0:
-                            print(element)
-                            break
-                        i = i + 1
-                self.newText = element.get_text(strip=True)
-                self.newText = self.newText.strip('[刘鹏程SaiL直播]')
-            #查看原图
-            img_child = soup.find('img',class_='ico_original')
-            if img_child != None:
-                img = img_child.parent
-                self.writeImg(img['href'])
-            #点击查看原图
-            imgs = soup.find_all('a',class_='check')
-            for img in imgs:
-                self.writeImg(img['href'])
+                #获取内容
+                #如果limit>1时这里需要循环
+                content = soup.find('li',class_='lineD_btm char_info',id=key_list)
+                #仅仅解析content内容
+                only_tags_with_key_list = SoupStrainer('li',class_='lineD_btm char_info',id=key_list)
+                #缩小查找范围
+                soup1 = BeautifulSoup(lists,'lxml',parse_only=only_tags_with_key_list)
+                #解析部分文档
+                if content !=None:
+                    #获取长直播
+                    element=soup1.find('span',id=span_id)
+                    if element == None:
+                        #获取短博文
+                        i = 0
+                        elements = soup1.find_all('div',class_='a_line')
+                        for element in elements:
+                            if i !=0:
+                                #print(element)
+                                break
+                            i = i + 1
+                    self.newText = element.get_text(strip=True)
+                    self.newText = self.newText.strip('[刘鹏程SaiL直播]')
+                    #追加时间
+                    href='http://www.imaibo.net/weibo/'+str(now_num)
+                    tim = soup1.find('a',href=href)
+                    if tim is not None:
+                        self.newText = tim.get_text()+'\n\r'+self.newText
+                #print('内容',self.newText)
+                #查看原图
+                img_child = soup1.find('img',class_='ico_original')
+                if img_child != None:
+                    img = img_child.parent
+                    self.writeImg(img['href'])
+                #print('查看原图',self.Imgs)
+                #点击查看原图
+                imgs = soup1.find_all('a',class_='check')
+                for img in imgs:
+                    self.writeImg(img['href'])
+                #print('点击查看原图',self.Imgs)
+
+                #发送邮件
+                mail = email()
+                mail.sendMail(self.newText,self.Imgs)
+                self.lastId = now_num
+                #print(self.newText)
+            #循环完成后自动将最后一个值保存到记录中
+            save(self.lastId)
+            #print('保存',self.lastId)
 
 '''
 发送QQ邮箱通知
 '''
-import time
-import configparser
-config = configparser.ConfigParser()
-config.read('GetLiuMaibo.cfg')
-print(config.sections())
+
+#print(config.sections())
 from email.mime.text import MIMEText
 import smtplib
 import mimetypes
@@ -173,10 +213,12 @@ class email():
 crawl = crawlLiuMaibo()
 crawl.crawLastest()
 #print(crawl.newText)
-print(crawl.Imgs)
+
+
 mail = email()
 mail.sendMail(crawl.newText,crawl.Imgs)
 '''
+
 def getCurTime():
     return time.localtime(time.time())
 
@@ -184,11 +226,7 @@ def getCurTime():
 
 
 #print(config.sections())
-org_num = config.get('info','last_num')
-timesleep= config.get('info','timeSleep')
-def save(org_num):
-    config.set('info','last_num',org_num)
-    config.write(open('GetLiuMaibo.cfg','w'))
+
 def ownCalcMail():
     crawl = crawlLiuMaibo()
     #crawl.crawLastest()
@@ -198,20 +236,12 @@ def ownCalcMail():
     while nw.tm_hour <16 and nw.tm_hour > 8:
         global org_num
         #当id不同时需要发送内容
+        print('检查当前crawl.now_num ',crawl.lastId,'org_num',org_num)
+
         crawl.crawLastest()
-        print('检查当前crawl.now_num ',crawl.now_num,'org_num',org_num)
-        if crawl.now_num != org_num:
-            mail = email()
-            mail.sendMail(crawl.newText,crawl.Imgs)
-            #global org_num
-            org_num = crawl.now_num
-            print('发送新邮件并休息30分钟...')
-            save(org_num)
-            time.sleep(int(timesleep)*30)
-        else:
-        #一样的,不需要发送
-            print('无变化,进入15分钟睡眠')
-            time.sleep(int(timesleep)*15)
+
+        print('睡一会儿15分钟')
+        time.sleep(int(timesleep)*15)
         nw = getCurTime()
     print('当日的任务已经不需要继续采集')
     
