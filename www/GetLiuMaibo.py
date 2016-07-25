@@ -5,6 +5,7 @@
 import time
 import configparser
 import os
+import OwnTime as ot
 
 config = configparser.ConfigParser()
 config.read('GetLiuMaibo.cfg')
@@ -13,6 +14,10 @@ timesleep= config.get('info','timeSleep')
 def save(org_num):
     if config.get('info','last_num') !=org_num:
         config.set('info','last_num',org_num)
+        config.write(open('GetLiuMaibo.cfg','w'))
+def saveDate(date):
+    if config.get('autoTotal','date') !=date:
+        config.set('autoTotal','date',date)
         config.write(open('GetLiuMaibo.cfg','w'))
 emailContext=None
 #获取时间戳
@@ -143,6 +148,7 @@ class crawlLiuMaibo():
 
                 #发送邮件
                 mail = email()
+                mail.setFromSubject('autocrawl','直播'+getNowTime())
                 mail.sendMail(self.newText,self.Imgs)
                 self.lastId = now_num
                 #print(self.newText)
@@ -165,6 +171,15 @@ from email.header import Header
 #发送邮件带图片
 class email():
     filepath='E:/PYWork/awesome-python3-webapp/www/WeiBoImg/'
+    #生成MIME文档
+    msg = MIMEMultipart()
+    #date
+    msg['Date']=formatdate()
+
+    def setFromSubject(self,fromtext,subject):
+        self.msg['From']=Header(fromtext,'utf-8')
+        #文件主题
+        self.msg['Subject']=Header(subject,'utf-8')
     def attach_img(self,img):
         if img != None:
             ctype,encoding = mimetypes.guess_type(img)
@@ -174,16 +189,10 @@ class email():
             #print(subtype)
             with open(img,'rb') as file:
                 return MIMEImage(file.read(),_subtype=subtype)
-    def sendMail(self,content,imgs):
-        #生成MIME文档
-        msg = MIMEMultipart()
-        #date
-        msg['From']=Header('autocrawl','utf-8')
-        msg['Date']=formatdate()
-        #文件主题
-        msg['Subject']=Header('直播'+getNowTime(),'utf-8')
+    def sendMail(self,content,imgs,subtype='plain'):
+
         #文本内容
-        msg.attach(MIMEText(_text=content,_charset='utf-8'))
+        self.msg.attach(MIMEText(_text=content,_charset='utf-8',_subtype=subtype))
         #图片
         for img in imgs:
             file_msg=self.attach_img(img)
@@ -191,7 +200,7 @@ class email():
             file_msg.add_header('Content-Disposition','attachment',
                         filename=os.path.split(img)[-1])
             #发送人
-            msg.attach(file_msg)
+            self.msg.attach(file_msg)
         fromaddr=config.get('emailInfo','fromaddr')
         #发送密码
         password=config.get('emailInfo','password')
@@ -205,7 +214,7 @@ class email():
         #登陆
         server.login(fromaddr,password)
         #发送
-        server.sendmail(fromaddr,to_addr,msg.as_string())
+        server.sendmail(fromaddr,to_addr,self.msg.as_string())
         #退出
         server.quit()
 
@@ -213,11 +222,31 @@ class email():
 crawl = crawlLiuMaibo()
 crawl.crawLastest()
 #print(crawl.newText)
-
-
-mail = email()
-mail.sendMail(crawl.newText,crawl.Imgs)
 '''
+import MySqlTest as mst
+import DBOperation as db
+
+#获取最新的日线各种统计
+def GetLastestTotal():
+    #尝试下载最新数据
+    org_date=config.get('autoTotal','date')
+    db.DownLoadlastest()
+    #获取最近天的数据从DB
+    date,dayframe=mst.GetMyDBDate()
+    #写入本地文件
+    if org_date !=date:
+        mst.WriteDataToExcel(date,dayframe)
+        mail = email()
+        mail.setFromSubject('autoTotal',date+'统计')
+
+        m = dayframe.to_html('a.html')
+        with open('a.html') as file:
+            text = file.read()
+            mail.sendMail(text,[],subtype='html')
+        saveDate(date)
+
+#mail.sendMail(text,[])
+
 
 def getCurTime():
     return time.localtime(time.time())
@@ -236,15 +265,21 @@ def ownCalcMail():
     while nw.tm_hour <16 and nw.tm_hour > 8:
         global org_num
         #当id不同时需要发送内容
-        print('检查当前crawl.now_num ',crawl.lastId,'org_num',org_num)
+        print(ot.GetNowHmDate(),'检查当前crawl.now_num ',crawl.lastId,'org_num',org_num)
 
         crawl.crawLastest()
 
         print('睡一会儿15分钟')
         time.sleep(int(timesleep)*15)
         nw = getCurTime()
-    print('当日的任务已经不需要继续采集')
-    
+    print('当日的微博任务已经不需要继续采集')
+    #当小时数等于16
+    while nw.tm_hour == 16:
+        print('开始采集日期的统计情况...',ot.GetNowHmDate())
+        GetLastestTotal()
+        print('已经采集完全.....需要退出')
+        break
+        nw = getCurTime()
     return False
 #每天
 
