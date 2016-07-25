@@ -134,6 +134,16 @@ def DownLoadlastest():
         #time.sleep(1)
     commitData()
 
+#检查全体已有数据是否完整
+def CheckAllDataCompleted():
+    rf_d = pd.read_sql('select * from sh_d',con=conn)
+    dates = rf_d['date']
+    for date in dates:
+        #print(date)
+        num = CheckDateComplete(date)
+        if num !=1:
+            print(date,'数据不完整...需要修正')
+
 
 
 
