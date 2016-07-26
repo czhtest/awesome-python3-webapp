@@ -248,6 +248,7 @@ def GetLastestTotal():
 #mail.sendMail(text,[])
 
 
+
 def getCurTime():
     return time.localtime(time.time())
 

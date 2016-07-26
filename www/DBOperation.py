@@ -53,12 +53,14 @@ def GetHisData(start,end,ktype='D'):
         return
     df = ts.get_hist_data('sh',start=start,end=end,ktype=ktype)
     if len(df.index) != 0:
+        print('获取',start,'到',end,'类型',ktype)
         df['date']=df.index
         return df[dft.dbCols]
 
 
 def WriteDataToDB(dateframe,ktype):
     #检查列是否相同
+    #print('写入数据dayframe',dateframe)
     tbName='sh_'
     correctNum=0
     if ktype == 'D' or ktype =='60' or ktype =='30'or ktype == '15'or ktype == '5':
@@ -71,17 +73,17 @@ def WriteDataToDB(dateframe,ktype):
         '60':4,
         '30':8,
         '15':16,
-        '5':47
+        '5':48
     }
     values=[]
     values.clear()
+
     if isinstance(dateframe,pd.core.frame.DataFrame):
         #判断列是否完全相同
-        if (len(set(dateframe.columns)^set(dft.dbCols))==0):
+        print(len(dateframe.index),ktype)
+        if (len(dateframe.columns)==6):
             #判断某天的数据是否完整
-            filterDate=[str(dateframe.date[0])[:10]]
-            count=len((dateframe['date'].apply(lambda x:x[:10])).isin(filterDate).index)
-            if correctNums[ktype]==count:
+            if len(dateframe.index)%correctNums[ktype]==0:
                 sql = 'insert into '+tbName+'(date,open,close,high,low,volume) values (%s,%s,%s,%s,%s,%s)'
                 for irow in range(len(dateframe.index)):
                     #这样写保证了数据的顺序
@@ -91,6 +93,8 @@ def WriteDataToDB(dateframe,ktype):
                                str(round(dateframe.close[irow],2)),str(round(dateframe.high[irow],2)),
                                str(round(dateframe.low[irow],2)),str(round(dateframe.volume[irow],2))
                                ))
+                    else:
+                        print('num=',num,str(dateframe.date[irow]))
             #print(values,sql)
 
                 try:
@@ -98,6 +102,8 @@ def WriteDataToDB(dateframe,ktype):
                     print('执行数据插入:',sta)
                 except Exception as e:
                     print('错误',sql,e)
+            else:
+                print('网络数据不完整',ktype)
     else:
         print('无需更新...')
 
@@ -126,8 +132,9 @@ def DownLoadlastest():
         else:
             DelDateData(maxDate)
             print(maxDate,'数据不完整,清除...')
-            st = ot.GetOneMoreDate(maxDate)
+            st = maxDate
 
+    print('最新数据范围',st,et)
     #获取最新的数据
     for ktype in dft.rowIndexs:
         WriteDataToDB(GetHisData(st,et,str(ktype)),str(ktype))
@@ -146,5 +153,9 @@ def CheckAllDataCompleted():
 
 
 
-
-
+'''
+print(CheckDateComplete('2016-07-25'))
+DownLoadlastest()
+df = GetHisData('2016-07-25','2016-07-27','5')
+print(len(df.index))
+'''
