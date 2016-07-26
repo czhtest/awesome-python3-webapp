@@ -177,9 +177,9 @@ class email():
     msg['Date']=formatdate()
 
     def setFromSubject(self,fromtext,subject):
-        self.msg['From']=Header(fromtext,'utf-8')
+        self.msg['From']=fromtext
         #文件主题
-        self.msg['Subject']=Header(subject,'utf-8')
+        self.msg['Subject']=subject
     def attach_img(self,img):
         if img != None:
             ctype,encoding = mimetypes.guess_type(img)
