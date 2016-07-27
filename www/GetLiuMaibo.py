@@ -20,9 +20,12 @@ def saveDate(date):
         config.set('autoTotal','date',date)
         config.write(open('GetLiuMaibo.cfg','w'))
 emailContext=None
+
 #获取时间戳
 def getNowTime():
     return time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time()))
+From='autocrawl'
+Subject='直播'+getNowTime()
 #print(getNowTime())
 from bs4 import BeautifulSoup
 import requests
@@ -99,7 +102,7 @@ class crawlLiuMaibo():
             for now_id in now_ids:
                 if now_id['minid']!=2834108 and now_id['minid'] >self.lastId :
                     self.now_nums.add(now_id['minid'])
-            #print(self.now_nums)
+            print(self.now_nums)
             for now_num in self.now_nums:
                 key_list='list_li_'+str(now_num)
                 span_id = 'longText-'+str(now_num)
@@ -133,7 +136,7 @@ class crawlLiuMaibo():
                     tim = soup1.find('a',href=href)
                     if tim is not None:
                         self.newText = tim.get_text()+'\n\r'+self.newText
-                #print('内容',self.newText)
+                print('内容',self.newText)
                 #查看原图
                 img_child = soup1.find('img',class_='ico_original')
                 if img_child != None:
@@ -144,11 +147,12 @@ class crawlLiuMaibo():
                 imgs = soup1.find_all('a',class_='check')
                 for img in imgs:
                     self.writeImg(img['href'])
-                #print('点击查看原图',self.Imgs)
+                print('图片',self.Imgs)
 
                 #发送邮件
                 mail = email()
-                mail.setFromSubject('autocrawl','直播'+getNowTime())
+                From='autocrawl'
+                Subject='直播'+getNowTime()
                 mail.sendMail(self.newText,self.Imgs)
                 self.lastId = now_num
                 #print(self.newText)
@@ -172,14 +176,7 @@ from email.header import Header
 class email():
     filepath='E:/PYWork/awesome-python3-webapp/www/WeiBoImg/'
     #生成MIME文档
-    msg = MIMEMultipart()
-    #date
-    msg['Date']=formatdate()
 
-    def setFromSubject(self,fromtext,subject):
-        self.msg['From']=fromtext
-        #文件主题
-        self.msg['Subject']=subject
     def attach_img(self,img):
         if img != None:
             ctype,encoding = mimetypes.guess_type(img)
@@ -190,9 +187,15 @@ class email():
             with open(img,'rb') as file:
                 return MIMEImage(file.read(),_subtype=subtype)
     def sendMail(self,content,imgs,subtype='plain'):
-
+        msg = MIMEMultipart()
+        msg['From']=From
+        #文件主题
+        msg['Subject']=Subject
+        #date
+        msg['Date']=formatdate()
         #文本内容
-        self.msg.attach(MIMEText(_text=content,_charset='utf-8',_subtype=subtype))
+
+        msg.attach(MIMEText(_text=content,_charset='utf-8',_subtype=subtype))
         #图片
         for img in imgs:
             file_msg=self.attach_img(img)
@@ -200,7 +203,7 @@ class email():
             file_msg.add_header('Content-Disposition','attachment',
                         filename=os.path.split(img)[-1])
             #发送人
-            self.msg.attach(file_msg)
+            msg.attach(file_msg)
         fromaddr=config.get('emailInfo','fromaddr')
         #发送密码
         password=config.get('emailInfo','password')
@@ -214,7 +217,7 @@ class email():
         #登陆
         server.login(fromaddr,password)
         #发送
-        server.sendmail(fromaddr,to_addr,self.msg.as_string())
+        server.sendmail(fromaddr,to_addr,msg.as_string())
         #退出
         server.quit()
 
@@ -237,7 +240,8 @@ def GetLastestTotal():
     if org_date !=date:
         mst.WriteDataToExcel(date,dayframe)
         mail = email()
-        mail.setFromSubject('autoTotal',date+'统计')
+        From='autoTotal'
+        Subject= date+'统计'
 
         m = dayframe.to_html('a.html')
         with open('a.html') as file:
