@@ -20,7 +20,6 @@ def saveDate(date):
         config.set('autoTotal','date',date)
         config.write(open('GetLiuMaibo.cfg','w'))
 emailContext=None
-
 #获取时间戳
 def getNowTime():
     return time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time()))
