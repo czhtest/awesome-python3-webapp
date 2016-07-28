@@ -149,9 +149,7 @@ class crawlLiuMaibo():
                 print('图片',self.Imgs)
 
                 #发送邮件
-                mail = email()
-                From='autocrawl'
-                Subject='直播'+getNowTime()
+                mail = email('autocrawl','直播'+getNowTime())
                 mail.sendMail(self.newText,self.Imgs)
                 self.lastId = now_num
                 #print(self.newText)
@@ -175,7 +173,9 @@ from email.header import Header
 class email():
     filepath='E:/PYWork/awesome-python3-webapp/www/WeiBoImg/'
     #生成MIME文档
-
+    def __init__(self,rom,subject):
+        self.From = rom
+        self.Subject=subject
     def attach_img(self,img):
         if img != None:
             ctype,encoding = mimetypes.guess_type(img)
@@ -187,9 +187,9 @@ class email():
                 return MIMEImage(file.read(),_subtype=subtype)
     def sendMail(self,content,imgs,subtype='plain'):
         msg = MIMEMultipart()
-        msg['From']=From
+        msg['From']=self.From
         #文件主题
-        msg['Subject']=Subject
+        msg['Subject']=self.Subject
         #date
         msg['Date']=formatdate()
         #文本内容
@@ -238,9 +238,7 @@ def GetLastestTotal():
     #写入本地文件
     if org_date !=date:
         mst.WriteDataToExcel(date,dayframe)
-        mail = email()
-        From='autoTotal'
-        Subject= date+'统计'
+        mail = email('autoTotal',date+'统计')
 
         m = dayframe.to_html('a.html')
         with open('a.html') as file:
